@@ -10,8 +10,29 @@ import { createServerFn, useServerFn } from "@tanstack/react-start";
 import { auth, fetchGuestToken } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { embedDashboard } from "@superset-ui/embedded-sdk";
+import type { EmbeddedDashboard } from "@superset-ui/embedded-sdk";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { themes } from "@/lib/presetThemes";
 
 export const Route = createFileRoute("/")({ component: App });
+
+const defaultUIConfig = JSON.stringify(
+  {
+    filters: {
+      visible: true,
+      expanded: true,
+    },
+    urlParams: {},
+  },
+  null,
+  2,
+);
 
 export const guestTokenFn = createServerFn()
   .inputValidator(
@@ -55,21 +76,11 @@ function App() {
   const [domain, setDomain] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [jsonConfig, setJsonConfig] = useState(
-    JSON.stringify(
-      {
-        filters: {
-          visible: true,
-          expanded: true,
-        },
-        urlParams: {},
-      },
-      null,
-      2,
-    ),
-  );
+  const [jsonConfig, setJsonConfig] = useState(defaultUIConfig);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [error, setError] = useState("");
+  const [dashboardInstance, setDashboardInstance] =
+    useState<EmbeddedDashboard | null>(null);
 
   const getGuestToken = useServerFn(guestTokenFn);
 
@@ -89,14 +100,16 @@ function App() {
       }
 
       setError("");
+      setIsEmbedded(true);
       embedDashboard({
         fetchGuestToken: () => guestToken,
         id: embedId,
         supersetDomain: domain,
         mountPoint: document.getElementById("embedded-container")!,
         dashboardUiConfig: JSON.parse(jsonConfig),
+      }).then((dashboard) => {
+        setDashboardInstance(dashboard);
       });
-      setIsEmbedded(true);
     } catch (e) {
       setError("Invalid JSON configuration");
     }
@@ -105,6 +118,7 @@ function App() {
   const handleReset = () => {
     setIsEmbedded(false);
     setError("");
+    setDashboardInstance(null);
   };
 
   return (
@@ -142,7 +156,7 @@ function App() {
               </Label>
               <Input
                 id="domain"
-                placeholder="example.com"
+                placeholder="http://localhost:8088"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 className="bg-background border-border"
@@ -155,7 +169,7 @@ function App() {
               </Label>
               <Input
                 id="username"
-                placeholder="Enter username"
+                placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="bg-background border-border"
@@ -169,7 +183,7 @@ function App() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter password"
+                placeholder="admin"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-background border-border"
@@ -184,11 +198,15 @@ function App() {
             </Label>
             <Textarea
               id="json-config"
-              placeholder={'{\n  "key": "value"\n}'}
+              placeholder={defaultUIConfig}
               value={jsonConfig}
               onChange={(e) => setJsonConfig(e.target.value)}
               className="font-mono text-sm bg-background border-border min-h-96 resize-none"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Select></Select>
           </div>
 
           {/* Error Message */}
@@ -221,8 +239,8 @@ function App() {
 
       {/* Preview Area - Main Content */}
       <div className="flex-1 flex flex-col">
-        {isEmbedded ? (
-          <div className="flex-1 flex flex-col">
+        {isEmbedded && (
+          <>
             {/* Header Info */}
             <div className="border-b border-border bg-card p-4">
               <div className="max-w-full">
@@ -246,15 +264,39 @@ function App() {
                     <span className="font-medium text-foreground">User:</span>{" "}
                     {username || "—"}
                   </div>
+                  <div>
+                    <Select
+                      onValueChange={(value) => {
+                        if (dashboardInstance) {
+                          dashboardInstance.setThemeConfig(
+                            themes.find((theme) => theme.name === value)
+                              ?.config || {},
+                          );
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {themes.map((theme) => (
+                          <SelectItem value={theme.name} key={theme.name}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <pre className="mt-6 p-4 bg-muted rounded text-left text-xs text-muted-foreground overflow-x-auto">
                   {JSON.stringify(
                     {
-                      embedId,
-                      domain: domain || undefined,
-                      username: username || undefined,
-                      config: JSON.parse(jsonConfig),
+                      id: embedId,
+                      supersetDomain: domain,
+                      mountPoint:
+                        'document.getElementById("embedded-container")!',
+                      dashboardUiConfig: JSON.parse(jsonConfig),
                     },
                     null,
                     2,
@@ -262,16 +304,10 @@ function App() {
                 </pre>
               </div>
             </div>
+          </>
+        )}
 
-            {/* Embedded Content Area */}
-            <div className="flex-1 overflow-auto p-6 bg-background">
-              <Card
-                id="embedded-container"
-                className="max-w-full h-full bg-card border-border p-8 flex flex-col items-center justify-center"
-              ></Card>
-            </div>
-          </div>
-        ) : (
+        {!isEmbedded && (
           <div className="flex-1 flex items-center justify-center bg-background p-6">
             <Card className="bg-card border-border p-12 text-center max-w-md">
               <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -284,6 +320,12 @@ function App() {
             </Card>
           </div>
         )}
+
+        {/* Embedded Container - always present but visibility controlled */}
+        <div
+          className={`${isEmbedded ? "flex-1" : "hidden"} overflow-auto p-6 bg-background`}
+          id="embedded-container"
+        ></div>
       </div>
     </div>
   );
