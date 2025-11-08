@@ -2,6 +2,9 @@
 
 A React application demonstrating how to embed Apache Superset dashboards using the Superset Embedded SDK.
 
+<img width="1696" height="1034" alt="image" src="https://github.com/user-attachments/assets/028b85fe-99f8-4cc6-bed3-c1b9c02cb8cb" />
+
+
 ## Features
 
 - **Guest Token Authentication**: Secure authentication using Superset's guest token system
@@ -67,4 +70,4 @@ npm run build
 
 ## License
 
-MIT
+Apache-2.0
