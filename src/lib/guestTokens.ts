@@ -1,6 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { auth, fetchGuestToken } from "./utils";
 
+export function buildGuestTokenPayload(embedId: string) {
+  return {
+    resources: [
+      {
+        type: "dashboard",
+        id: embedId,
+      },
+    ],
+    rls: [],
+    user: {
+      username: "guest",
+      first_name: "Guest",
+      last_name: "User",
+    },
+  };
+}
+
 export const guestTokenFn = createServerFn()
   .inputValidator(
     (data: {
@@ -18,20 +35,7 @@ export const guestTokenFn = createServerFn()
     );
     const guestToken = await fetchGuestToken(
       `${domain}/api/v1/security/guest_token`,
-      {
-        resources: [
-          {
-            type: "dashboard",
-            id: embedId,
-          },
-        ],
-        rls: [],
-        user: {
-          username: "guest",
-          first_name: "Guest",
-          last_name: "User",
-        },
-      },
+      buildGuestTokenPayload(embedId),
       authHeaders,
     );
 

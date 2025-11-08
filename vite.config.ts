@@ -14,6 +14,12 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  optimizeDeps: {
+    include: ['@superset-ui/embedded-sdk'],
+  },
+  ssr: {
+    noExternal: ['@superset-ui/embedded-sdk'],
+  },
 })
 
 export default config
