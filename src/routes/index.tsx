@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { auth, fetchGuestToken } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { embedDashboard } from "@superset-ui/embedded-sdk";
 import type { EmbeddedDashboard } from "@superset-ui/embedded-sdk";
@@ -19,11 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { themes } from "@/lib/presetThemes";
+import { guestTokenFn } from "@/lib/guestTokens";
+import { ModeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/")({ component: App });
 
 const defaultUIConfig = JSON.stringify(
   {
+    hideTitle: true,
+    hideTab: true,
     filters: {
       visible: true,
       expanded: true,
@@ -33,43 +36,6 @@ const defaultUIConfig = JSON.stringify(
   null,
   2,
 );
-
-export const guestTokenFn = createServerFn()
-  .inputValidator(
-    (data: {
-      domain: string;
-      username: string;
-      password: string;
-      embedId: string;
-    }) => data,
-  )
-  .handler(async ({ data: { domain, password, username, embedId } }) => {
-    const { authHeaders } = await auth(
-      `${domain}/api/v1/security/login`,
-      username,
-      password,
-    );
-    const guestToken = await fetchGuestToken(
-      `${domain}/api/v1/security/guest_token`,
-      {
-        resources: [
-          {
-            type: "dashboard",
-            id: embedId,
-          },
-        ],
-        rls: [],
-        user: {
-          username: "guest",
-          first_name: "Guest",
-          last_name: "User",
-        },
-      },
-      authHeaders,
-    );
-
-    return guestToken;
-  });
 
 function App() {
   const [embedId, setEmbedId] = useState("");
@@ -127,8 +93,8 @@ function App() {
       <div className="w-80 flex-shrink-0 border-r border-border bg-muted p-6 overflow-y-auto">
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">
-              Embed Demo
+            <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-4">
+              Embed Demo <ModeToggle />
             </h1>
             <p className="text-sm text-muted-foreground">
               Configure and test superset embedded dashboards.
@@ -205,9 +171,7 @@ function App() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Select></Select>
-          </div>
+          <div className="space-y-2"></div>
 
           {/* Error Message */}
           {error && (

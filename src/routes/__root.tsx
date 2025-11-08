@@ -6,13 +6,13 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
-import Header from "../components/Header";
-
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 import appCss from "../styles.css?url";
 
 import type { QueryClient } from "@tanstack/react-query";
+import { getThemeServerFn } from "@/lib/theme";
+import { ThemeProvider } from "@/components/theme-provider";
 
 interface MyRouterContext {
   queryClient: QueryClient;
@@ -29,7 +29,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "Superset Embed",
       },
     ],
     links: [
@@ -41,16 +41,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   }),
 
   shellComponent: RootDocument,
+  loader: () => getThemeServerFn(),
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const theme = Route.useLoaderData();
   return (
-    <html lang="en">
+    <html lang="en" className={theme} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <ThemeProvider theme={theme}>{children}</ThemeProvider>
         <TanStackDevtools
           config={{
             position: "bottom-right",
