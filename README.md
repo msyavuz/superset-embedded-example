@@ -15,6 +15,9 @@ A React application demonstrating how to embed Apache Superset dashboards using 
 
 ## Getting Started
 
+>[!NOTE]
+> If you have a superset instance deployed for testing you can use the [live app](https://superset-embedded-example.appwrite.network/)  to test embedding a dashboard directly.
+
 ### Prerequisites
 
 - Node.js 18+
