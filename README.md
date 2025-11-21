@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-The application will start on the port specified in your `.env` file (default: 3000).
+The application will start on port 3000 by default. You can specify a different port by creating a `.env` file with `PORT=<your-port>`.
 
 ### Configuration
 
