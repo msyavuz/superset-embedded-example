@@ -24,6 +24,46 @@ A React application demonstrating how to embed Apache Superset dashboards using 
 - Apache Superset instance with embedded dashboards enabled
 - Admin credentials for your Superset instance
 
+### Superset Configuration
+
+For embedded dashboards to work properly, your Superset instance must be configured with CORS support:
+
+1. **Edit your `superset_config.py` file** and add:
+
+```python
+# Enable CORS
+ENABLE_CORS = True
+
+# Configure CORS options
+CORS_OPTIONS = {
+    'origins': [
+        'http://localhost:3000',  # Your React app's URL
+        # Add other allowed origins as needed
+    ],
+    'allow_headers': ['Content-Type', 'Authorization'],
+    'supports_credentials': True,
+}
+
+# Enable embedded dashboards feature
+FEATURE_FLAGS = {
+    "EMBEDDED_SUPERSET": True,
+}
+
+# Configure guest role (important for embedded dashboards)
+# The PUBLIC_ROLE_LIKE must be set to grant permissions to embedded users
+PUBLIC_ROLE_LIKE = "Gamma"  # or another role with dashboard access
+
+# Optional: Configure specific guest role permissions
+GUEST_ROLE_NAME = "Guest"
+```
+
+2. **Restart your Superset instance** for changes to take effect
+
+3. **Create an embedded dashboard** in Superset:
+   - Navigate to your dashboard
+   - Click on the three dots menu → "Embed dashboard"
+   - Copy the generated embedded ID
+
 ### Installation
 
 ```bash
@@ -70,6 +110,29 @@ npm run build
 - **Tailwind CSS** - Styling
 - **shadcn/ui** - UI components
 - **Vite** - Build tool
+
+## Troubleshooting
+
+### Common Issues
+
+1. **403 Forbidden on `/api/v1/me/roles/`**
+   - Ensure `PUBLIC_ROLE_LIKE` is set in `superset_config.py`
+   - Check that the dashboard is properly shared for embedding
+   - Verify the user creating the guest token has admin permissions
+
+2. **CORS Errors**
+   - Verify `ENABLE_CORS = True` in `superset_config.py`
+   - Ensure your app's URL is in the `CORS_OPTIONS['origins']` list
+   - Restart Superset after configuration changes
+
+3. **Invalid Dashboard ID**
+   - Use the UUID from the "Embed dashboard" dialog in Superset
+   - Don't use the numeric dashboard ID from the URL
+
+4. **Authentication Failed**
+   - Verify your Superset instance is running
+   - Check username/password are correct
+   - Ensure the user has permission to create guest tokens
 
 ## License
 

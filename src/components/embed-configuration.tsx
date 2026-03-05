@@ -54,7 +54,9 @@ export function EmbedConfiguration({
             Domain
             <InfoCircle>
               The base URL of your superset instance backend (e.g.,
-              http://localhost:8088).
+              http://localhost:8088). Note: Superset must have CORS enabled
+              for embedded dashboards. Add your app's URL (http://localhost:3000)
+              to CORS_OPTIONS in superset_config.py.
             </InfoCircle>
           </Label>
           <Input

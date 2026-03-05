@@ -38,11 +38,21 @@ function App() {
 
   const getGuestToken = useServerFn(guestTokenFn);
 
-  const { data: guestToken, refetch: refetchGuestToken } = useQuery({
+  const { data: guestToken, refetch: refetchGuestToken, error: tokenError } = useQuery({
     queryKey: ["guest_token", domain, username, password, embedId],
-    queryFn: async () =>
-      await getGuestToken({ data: { domain, username, password, embedId } }),
+    queryFn: async () => {
+      console.log("Fetching guest token...");
+      try {
+        const token = await getGuestToken({ data: { domain, username, password, embedId } });
+        console.log("Token fetched:", token ? "Success" : "Failed");
+        return token;
+      } catch (err: any) {
+        console.error("Token fetch error:", err);
+        throw err;
+      }
+    },
     enabled: shouldFetchToken && !!domain && !!username && !!password && !!embedId,
+    retry: false,
   });
 
   const handleDisplay = async () => {
@@ -81,29 +91,52 @@ function App() {
       setShouldFetchToken(true);
       
       // Wait for token to be fetched
-      const token = guestToken || (await refetchGuestToken()).data;
+      const tokenResult = await refetchGuestToken();
+      const token = guestToken || tokenResult.data;
+      
+      if (tokenError || tokenResult.error) {
+        const errorMsg = tokenError?.message || tokenResult.error?.message || "Unknown error";
+        console.error("Token fetch error:", errorMsg);
+        setError(`Failed to get guest token: ${errorMsg}`);
+        return;
+      }
       
       if (!token) {
         setError("Failed to get guest token. Please check your credentials and domain.");
         return;
       }
 
+      console.log("Embedding dashboard with token...");
       setIsEmbedded(true);
       
       // Dynamically import to avoid SSR issues
       const { embedDashboard } = await import("@superset-ui/embedded-sdk");
       
-      embedDashboard({
-        fetchGuestToken: () => token,
-        id: embedId,
-        supersetDomain: domain,
-        mountPoint: document.getElementById("embedded-container")!,
-        dashboardUiConfig: JSON.parse(jsonConfig),
-      }).then((dashboard) => {
+      try {
+        const dashboard = await embedDashboard({
+          fetchGuestToken: () => {
+            console.log("Providing guest token to embedded SDK");
+            return Promise.resolve(token);
+          },
+          id: embedId,
+          supersetDomain: domain,
+          mountPoint: document.getElementById("embedded-container")!,
+          dashboardUiConfig: JSON.parse(jsonConfig),
+        });
+        console.log("Dashboard embedded successfully");
         setDashboardInstance(dashboard);
-      });
-    } catch (e) {
-      setError("Invalid JSON configuration");
+      } catch (embedError: any) {
+        console.error("Embed error:", embedError);
+        setError(`Failed to embed dashboard: ${embedError.message || "Unknown error"}`);
+        setIsEmbedded(false);
+      }
+    } catch (e: any) {
+      console.error("Error in handleDisplay:", e);
+      if (e.message?.includes("JSON")) {
+        setError("Invalid JSON configuration");
+      } else {
+        setError(e.message || "An error occurred while embedding the dashboard");
+      }
     }
   };
 
