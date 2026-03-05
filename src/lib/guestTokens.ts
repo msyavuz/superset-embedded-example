@@ -14,11 +14,11 @@ export function buildGuestTokenPayload(embedId: string) {
 				id: dashboardId,
 			},
 		],
-		rls: [{ clause: "channel_name = 'general'" }],
+		rls: [],
 		user: {
-			username: "test_user",
-			first_name: "test",
-			last_name: "user",
+			username: "guest_user",
+			first_name: "Guest",
+			last_name: "User",
 		},
 	};
 }
